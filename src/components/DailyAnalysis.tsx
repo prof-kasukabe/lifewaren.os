@@ -16,62 +16,46 @@ interface DailyAnalysisProps {
   financeLogs: IncomeLog[];
 }
 
-export function DailyAnalysis({
-  selectedDate,
-  setSelectedDate,
-  habits,
-  learningLogs,
-  islamicLogs,
-  prayers,
-  financeLogs
-}: DailyAnalysisProps) {
+export function DailyAnalysis({ selectedDate, setSelectedDate, habits, learningLogs, islamicLogs, prayers, financeLogs }: DailyAnalysisProps) {
   const [directive, setDirective] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
   const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(new Date(), 6 - i));
 
-  useEffect(() => {
-    setDirective(null);
-  }, [selectedDate]);
+  useEffect(() => setDirective(null), [selectedDate]);
 
   const generateDirective = async () => {
     setIsAnalyzing(true);
     setDirective(null);
-    
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     const dayFinanceLogs = financeLogs.filter(l => isSameDay(new Date(l.timestamp), selectedDate));
     const dayLearningLogs = learningLogs.filter(l => isSameDay(new Date(l.date), selectedDate));
     const dayIslamicLogs = islamicLogs.filter(l => isSameDay(new Date(l.date), selectedDate));
-    
     const totalIncome = dayFinanceLogs.reduce((sum, log) => sum + log.amount, 0);
     const completedHabits = habits.filter(h => h.completed).length;
     const prayerCount = Object.values(prayers).filter(Boolean).length;
 
     let analysis = "";
-
     if (isToday(selectedDate)) {
       if (totalIncome === 0 && dayLearningLogs.length === 0 && prayerCount < 5) {
-        analysis = "⚠️ **WARNING**: Hari ini berjalan tanpa progres signifikan. Tidak ada pemasukan, tidak ada log belajar, dan ibadah wajib belum sempurna. Segera ambil kendali. Kerjakan 1 habit fisik sekarang, dan selesaikan kewajibanmu.";
+        analysis = "⚠️ WARNING: Hari ini berjalan tanpa progres signifikan. Segera ambil kendali. Kerjakan 1 habit fisik sekarang, dan selesaikan kewajibanmu.";
       } else if (totalIncome > 0 && dayLearningLogs.length > 0 && prayerCount === 5) {
-        analysis = "🔥 **OPTIMAL STATE**: Kinerja hari ini luar biasa. Anda mencetak pemasukan Rp " + totalIncome.toLocaleString('id-ID') + ", menambah knowledge base, dan menjaga 5 waktu. Eksekusi yang sempurna. Gunakan sisa hari untuk recovery total.";
+        analysis = "🔥 OPTIMAL STATE: Eksekusi yang sempurna hari ini. Gunakan sisa hari untuk recovery total.";
       } else {
-        analysis = `📊 **STATUS REPORT**: \n- Pemasukan: Rp ${totalIncome.toLocaleString('id-ID')}.\n- Habit selesai: ${completedHabits}/${habits.length}.\n- Shalat terjaga: ${prayerCount}/5.\n\n**Directive**: Keseimbangan Anda cukup baik, namun masih ada ruang kosong. Pastikan target finansial tidak membuat Anda mengorbankan waktu deep work atau ibadah. Eksekusi sisa target Anda.`;
+        analysis = `📊 STATUS REPORT: \n- Pemasukan: Rp ${totalIncome.toLocaleString('id-ID')}.\n- Habit selesai: ${completedHabits}/${habits.length}.\n- Shalat terjaga: ${prayerCount}/5.\n\nDirective: Selesaikan habit yang tertunda sebelum tidur.`;
       }
     } else {
-      if (totalIncome > 0 || dayLearningLogs.length > 0 || dayIslamicLogs.length > 0) {
-        analysis = `Berdasarkan data historis tanggal ${format(selectedDate, 'dd MMM')}, Anda mencatat pemasukan Rp ${totalIncome.toLocaleString('id-ID')} dengan ${dayLearningLogs.length} log pembelajaran dan ${dayIslamicLogs.length} log spiritual. Jadikan ritme positif ini sebagai baseline.`;
-      } else {
-        analysis = `Tidak ada data aktivitas yang tercatat untuk tanggal ${format(selectedDate, 'dd MMM')}. Jika ini adalah hari istirahat, pastikan Anda benar-benar memulihkan energi. Jika ini hari terbuang, jadikan bahan evaluasi keras.`;
-      }
+      analysis = (totalIncome > 0 || dayLearningLogs.length > 0 || dayIslamicLogs.length > 0)
+        ? `Historis ${format(selectedDate, 'dd MMM')}: Pemasukan Rp ${totalIncome.toLocaleString('id-ID')}, ${dayLearningLogs.length} log belajar. Jadikan ritme ini sebagai baseline.`
+        : `Tidak ada data aktivitas untuk tanggal ${format(selectedDate, 'dd MMM')}.`;
     }
-
     setDirective(analysis);
     setIsAnalyzing(false);
   };
 
   return (
-    <div className="bg-zinc-900/30 border border-zinc-800/50 p-6 sm:p-8 rounded-2xl flex flex-col w-full relative overflow-hidden">
+    // GLASSMORPHISM WRAPPER
+    <div className="bg-zinc-950/40 backdrop-blur-md border border-white/[0.05] shadow-2xl shadow-black/40 rounded-3xl p-6 sm:p-8 flex flex-col w-full relative overflow-hidden transition-all duration-300 hover:border-white/[0.08] hover:bg-zinc-900/50">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
         <div>
           <h2 className="text-2xl font-medium text-zinc-100 mb-1 flex items-center gap-2">
@@ -91,10 +75,10 @@ export function DailyAnalysis({
                 key={date.toISOString()}
                 onClick={() => setSelectedDate(date)}
                 className={cn(
-                  "flex flex-col items-center justify-center min-w-[54px] h-14 rounded-xl border transition-all",
+                  "flex flex-col items-center justify-center min-w-[54px] h-14 rounded-2xl border transition-all",
                   isSelected 
-                    ? "bg-zinc-100 border-zinc-100 text-zinc-900 shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
-                    : "bg-zinc-950/50 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900"
+                    ? "bg-zinc-100 border-zinc-100 text-zinc-900 shadow-[0_0_15px_rgba(255,255,255,0.15)]" 
+                    : "bg-white/[0.02] border-white/[0.05] text-zinc-500 hover:border-white/[0.1] hover:bg-white/[0.05]"
                 )}
               >
                 <span className="text-[10px] uppercase font-semibold tracking-wider">
@@ -112,7 +96,7 @@ export function DailyAnalysis({
         </div>
       </div>
 
-      <div className="bg-zinc-950/50 border border-zinc-800/80 rounded-xl p-6 relative">
+      <div className="bg-white/[0.02] border border-white/[0.05] rounded-3xl p-6 relative">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-2 text-zinc-400">
             <CalendarDays className="w-4 h-4" />
@@ -123,7 +107,7 @@ export function DailyAnalysis({
           <button
             onClick={generateDirective}
             disabled={isAnalyzing}
-            className="flex items-center gap-2 text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 px-4 py-2 rounded-full transition-colors disabled:opacity-50"
           >
             {isAnalyzing ? <Zap className="w-3.5 h-3.5 animate-pulse" /> : <Flame className="w-3.5 h-3.5" />}
             Generate Directive
@@ -132,25 +116,13 @@ export function DailyAnalysis({
 
         <AnimatePresence mode="wait">
           {directive ? (
-            <motion.div
-              key="directive"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap"
-            >
+            <motion.div key="directive" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
               {directive}
             </motion.div>
           ) : (
-            <motion.div
-              key="placeholder"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-sm text-zinc-600 flex items-center gap-2 h-10"
-            >
+            <motion.div key="placeholder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-sm text-zinc-600 flex items-center gap-2 h-10">
               <ChevronRight className="w-4 h-4" />
-              Menunggu inisiasi analisis dari sistem...
+              Menunggu inisiasi analisis...
             </motion.div>
           )}
         </AnimatePresence>
