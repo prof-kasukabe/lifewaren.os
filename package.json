@@ -10,9 +10,10 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },
-"dependencies": {
+  "dependencies": {
     "@google/genai": "^2.4.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
@@ -21,7 +22,7 @@
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "recharts": "^3.8.1",
+    "recharts": "^3.9.2",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

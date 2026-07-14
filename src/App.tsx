@@ -1,120 +1,94 @@
 import { useState } from 'react';
-import { HabitTracker } from './components/HabitTracker';
+import { format } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
+import { Menu, X } from 'lucide-react';
 import { FinanceTracker } from './components/FinanceTracker';
-import { DecisionMatrix } from './components/DecisionMatrix';
+import { HabitTracker } from './components/HabitTracker';
 import { LearningJournal } from './components/LearningJournal';
 import { IslamicKnowledge } from './components/IslamicKnowledge';
+import { DecisionMatrix } from './components/DecisionMatrix';
 import { DailyAnalysis } from './components/DailyAnalysis';
-import { FocusTimer } from './components/FocusTimer';
-import { QuickNote } from './components/QuickNote';
+import { useLocalStorage } from './hooks/useLocalStorage';
+import { cn } from './lib/utils';
+import randyProfile from './assets/RandyWa.png';
+
 import { Habit, LearningLog, FinancialGoal, IslamicLog, DailyPrayers, IncomeLog } from './types';
-import { useLocalStorage } from './hooks/useLocalStorage'; // Pastikan Anda sudah membuat file ini
 
-const INITIAL_HABITS: Habit[] = [
-  { id: '1', name: 'Membaca 10 halaman buku', category: 'mental', completed: true },
-  { id: '2', name: 'Workout / Push up 30x', category: 'physical', completed: false },
-  { id: '3', name: 'Coding algoritma / belajar stack baru', category: 'career', completed: false },
-  { id: '4', name: 'Evaluasi pemasukan harian', category: 'career', completed: true },
-  { id: '5', name: 'Tidur sebelum jam 11 malam', category: 'physical', completed: false },
-];
-
-const INITIAL_LOGS: LearningLog[] = [
-  { id: '1', date: new Date().toISOString(), source: 'buku', content: 'Atomic Habits: Perbaikan 1% setiap hari' }
-];
-
-const INITIAL_GOAL: FinancialGoal = {
-  totalAmount: 12000000,
-  paidAmount: 4500000,
-  monthsRemaining: 4,
-  monthlyTarget: 1875000
-};
-
-const INITIAL_ISLAMIC_LOGS: IslamicLog[] = [];
-const INITIAL_PRAYERS: DailyPrayers = { fajr: true, dhuhr: false, asr: false, maghrib: false, isha: false };
-const INITIAL_FINANCE_LOGS: IncomeLog[] = [];
+const TABS = [
+  { id: 'analysis', label: 'Analysis' },
+  { id: 'finance', label: 'Finance' },
+  { id: 'habits', label: 'Habits' },
+  { id: 'knowledge', label: 'Knowledge' },
+  { id: 'islamic', label: 'Islamic' },
+  { id: 'matrix', label: 'Matrix' }
+] as const;
 
 export default function App() {
-  const [habits, setHabits] = useLocalStorage<Habit[]>('system-os-habits', INITIAL_HABITS);
-  const [learningLogs, setLearningLogs] = useLocalStorage<LearningLog[]>('system-os-learning', INITIAL_LOGS);
-  const [goal, setGoal] = useLocalStorage<FinancialGoal>('system-os-goal', INITIAL_GOAL);
-  const [islamicLogs, setIslamicLogs] = useLocalStorage<IslamicLog[]>('system-os-islamic', INITIAL_ISLAMIC_LOGS);
-  const [prayers, setPrayers] = useLocalStorage<DailyPrayers>('system-os-prayers', INITIAL_PRAYERS);
-  const [financeLogs, setFinanceLogs] = useLocalStorage<IncomeLog[]>('system-os-finance', INITIAL_FINANCE_LOGS);
+  const [activeTab, setActiveTab] = useState<typeof TABS[number]['id']>('analysis');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [habits, setHabits] = useLocalStorage<Habit[]>('habits', []);
+  const [goal, setGoal] = useLocalStorage<FinancialGoal>('goal', { totalAmount: 12000000, paidAmount: 0, monthsRemaining: 4, monthlyTarget: 3000000 });
+  const [financeLogs, setFinanceLogs] = useLocalStorage<IncomeLog[]>('finance-logs', []);
+  const [learningLogs, setLearningLogs] = useLocalStorage<LearningLog[]>('learning-logs', []);
+  const [islamicLogs, setIslamicLogs] = useLocalStorage<IslamicLog[]>('islamic-logs', []);
+  const [prayers, setPrayers] = useLocalStorage<DailyPrayers>('prayers', { fajr: false, dhuhr: false, asr: false, maghrib: false, isha: false });
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   return (
-    // Latar belakang diubah dengan sentuhan radial-gradient super tipis agar card kaca terlihat elegan
-    <div className="min-h-screen bg-[#09090b] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.1),rgba(255,255,255,0))] text-zinc-100 p-6 sm:p-12 font-sans flex flex-col overflow-x-hidden selection:bg-zinc-800">
-      <div className="max-w-[1200px] mx-auto w-full flex-grow flex flex-col gap-8">
-        
-        <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-8 border-b border-white/[0.05]">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium tracking-tight text-zinc-100">
-              System<span className="text-zinc-500">.OS</span>
-            </h1>
-            <p className="text-sm text-zinc-500 mt-2">
-              Performance & Income Matrix
-            </p>
-          </div>
-          <FocusTimer />
-        </header>
-
-        <div className="w-full">
-          <DailyAnalysis 
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-            habits={habits}
-            learningLogs={learningLogs}
-            islamicLogs={islamicLogs}
-            prayers={prayers}
-            financeLogs={financeLogs}
-          />
-        </div>
-
-        <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <div className="flex-1 min-h-[300px]">
-              <FinanceTracker 
-                goal={goal} 
-                setGoal={setGoal} 
-                financeLogs={financeLogs} 
-                setFinanceLogs={setFinanceLogs} 
-              />
-            </div>
-            <div className="flex-1 min-h-[400px]">
-              <HabitTracker habits={habits} setHabits={setHabits} />
-            </div>
-          </div>
-
-          <div className="lg:col-span-8 flex flex-col gap-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="min-h-[400px]">
-                <IslamicKnowledge 
-                  logs={islamicLogs} 
-                  setLogs={setIslamicLogs} 
-                  prayers={prayers} 
-                  setPrayers={setPrayers} 
-                />
-              </div>
-              <div className="min-h-[400px]">
-                <DecisionMatrix habits={habits} logs={learningLogs} />
-              </div>
-            </div>
-            <div className="min-h-[400px]">
-              <LearningJournal logs={learningLogs} setLogs={setLearningLogs} />
-            </div>
-          </div>
-        </main>
-        
-        <footer className="mt-4 flex flex-col sm:flex-row justify-between items-center text-xs text-zinc-500 border-t border-white/[0.05] pt-6 pb-4 gap-4 sm:gap-0">
-          <div>System Status: Nominal</div>
-          <div className="flex items-center gap-6">
-            <div className="hidden md:block">Location: Dev Environment</div>
-            <QuickNote />
-          </div>
-        </footer>
+    <div className="min-h-screen bg-white text-black font-sans flex flex-col lg:flex-row overflow-hidden">
+      
+      {/* Mobile Header */}
+      <div className="lg:hidden p-6 border-b border-gray-100 flex justify-between items-center z-50 bg-white">
+        <span className="font-bold text-lg">System.OS</span>
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          {isMobileMenuOpen ? <X /> : <Menu />}
+        </button>
       </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 p-6 flex flex-col gap-4 z-40">
+          {TABS.map(tab => (
+            <button key={tab.id} className="uppercase font-bold text-left hover:text-gray-500" onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Sidebar Desktop */}
+      <div className="hidden lg:flex w-5/12 flex-col justify-between p-12 border-r border-gray-100 h-screen sticky top-0">
+        <header className="font-bold text-xl tracking-tight">System.OS</header>
+        <div className="flex-1 flex items-center justify-center">
+          <img src={randyProfile} alt="Profile" className="w-80 h-80 rounded-full object-cover shadow-2xl border-4 border-white grayscale hover:grayscale-0 transition-all duration-500" />
+        </div>
+        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+          {format(new Date(), 'dd MMMM yyyy', { locale: localeId })}
+        </div>
+      </div>
+
+      {/* Desktop Vertical Nav */}
+      <nav className="hidden lg:flex w-20 border-r border-gray-100 flex-col items-center py-12 justify-center gap-10 text-[10px] font-bold tracking-[0.3em] uppercase bg-gray-50/50">
+        {TABS.map((tab) => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} 
+            className={cn("[writing-mode:vertical-lr] rotate-180 transition-colors py-2", activeTab === tab.id ? "text-black" : "text-gray-300 hover:text-black")}>
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* Main Content Area */}
+      <main className="flex-1 p-6 lg:p-12 overflow-y-auto h-[calc(100vh-80px)] lg:h-screen">
+        <div className="max-w-5xl mx-auto">
+          {activeTab === 'analysis' && <DailyAnalysis selectedDate={selectedDate} setSelectedDate={setSelectedDate} habits={habits} learningLogs={learningLogs} islamicLogs={islamicLogs} prayers={prayers} financeLogs={financeLogs} />}
+          {activeTab === 'finance' && <FinanceTracker goal={goal} setGoal={setGoal} financeLogs={financeLogs} setFinanceLogs={setFinanceLogs} />}
+          {activeTab === 'habits' && <HabitTracker habits={habits} setHabits={setHabits} />}
+          {activeTab === 'knowledge' && <LearningJournal logs={learningLogs} setLogs={setLearningLogs} />}
+          {activeTab === 'islamic' && <IslamicKnowledge logs={islamicLogs} setLogs={setIslamicLogs} prayers={prayers} setPrayers={setPrayers} />}
+          {activeTab === 'matrix' && <DecisionMatrix habits={habits} logs={learningLogs} />}
+        </div>
+      </main>
     </div>
   );
 }

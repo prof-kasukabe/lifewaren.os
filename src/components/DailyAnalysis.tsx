@@ -1,12 +1,9 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { CalendarDays, Activity, Flame, ChevronRight, Zap } from 'lucide-react';
-import { Habit, LearningLog, IslamicLog, DailyPrayers, IncomeLog } from '../types';
-import { format, subDays, isSameDay, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
-import { cn } from '../lib/utils';
+import { motion } from 'motion/react';
+import { Habit, LearningLog, IslamicLog, DailyPrayers, IncomeLog } from '../types';
 
-interface DailyAnalysisProps {
+interface AnalysisProps {
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
   habits: Habit[];
@@ -16,117 +13,63 @@ interface DailyAnalysisProps {
   financeLogs: IncomeLog[];
 }
 
-export function DailyAnalysis({ selectedDate, setSelectedDate, habits, learningLogs, islamicLogs, prayers, financeLogs }: DailyAnalysisProps) {
-  const [directive, setDirective] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(new Date(), 6 - i));
-
-  useEffect(() => setDirective(null), [selectedDate]);
-
-  const generateDirective = async () => {
-    setIsAnalyzing(true);
-    setDirective(null);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const dayFinanceLogs = financeLogs.filter(l => isSameDay(new Date(l.timestamp), selectedDate));
-    const dayLearningLogs = learningLogs.filter(l => isSameDay(new Date(l.date), selectedDate));
-    const dayIslamicLogs = islamicLogs.filter(l => isSameDay(new Date(l.date), selectedDate));
-    const totalIncome = dayFinanceLogs.reduce((sum, log) => sum + log.amount, 0);
-    const completedHabits = habits.filter(h => h.completed).length;
-    const prayerCount = Object.values(prayers).filter(Boolean).length;
-
-    let analysis = "";
-    if (isToday(selectedDate)) {
-      if (totalIncome === 0 && dayLearningLogs.length === 0 && prayerCount < 5) {
-        analysis = "⚠️ WARNING: Hari ini berjalan tanpa progres signifikan. Segera ambil kendali. Kerjakan 1 habit fisik sekarang, dan selesaikan kewajibanmu.";
-      } else if (totalIncome > 0 && dayLearningLogs.length > 0 && prayerCount === 5) {
-        analysis = "🔥 OPTIMAL STATE: Eksekusi yang sempurna hari ini. Gunakan sisa hari untuk recovery total.";
-      } else {
-        analysis = `📊 STATUS REPORT: \n- Pemasukan: Rp ${totalIncome.toLocaleString('id-ID')}.\n- Habit selesai: ${completedHabits}/${habits.length}.\n- Shalat terjaga: ${prayerCount}/5.\n\nDirective: Selesaikan habit yang tertunda sebelum tidur.`;
-      }
-    } else {
-      analysis = (totalIncome > 0 || dayLearningLogs.length > 0 || dayIslamicLogs.length > 0)
-        ? `Historis ${format(selectedDate, 'dd MMM')}: Pemasukan Rp ${totalIncome.toLocaleString('id-ID')}, ${dayLearningLogs.length} log belajar. Jadikan ritme ini sebagai baseline.`
-        : `Tidak ada data aktivitas untuk tanggal ${format(selectedDate, 'dd MMM')}.`;
-    }
-    setDirective(analysis);
-    setIsAnalyzing(false);
-  };
+export function DailyAnalysis({ 
+  habits = [], 
+  learningLogs = [], 
+  islamicLogs = [], 
+  prayers = {fajr:false, dhuhr:false, asr:false, maghrib:false, isha:false}, 
+  financeLogs = [] 
+}: any) {
+  // Hitung metrik ringkasan
+  const completedHabits = habits.filter(h => h.completed).length;
+  const totalFinance = financeLogs.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalPrayers = Object.values(prayers).filter(Boolean).length;
 
   return (
-    // GLASSMORPHISM WRAPPER
-    <div className="bg-zinc-950/40 backdrop-blur-md border border-white/[0.05] shadow-2xl shadow-black/40 rounded-3xl p-6 sm:p-8 flex flex-col w-full relative overflow-hidden transition-all duration-300 hover:border-white/[0.08] hover:bg-zinc-900/50">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-8"
+    >
+      {/* Header Section */}
+      <div className="flex justify-between items-end border-b border-gray-100 pb-8">
         <div>
-          <h2 className="text-2xl font-medium text-zinc-100 mb-1 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-indigo-400" />
-            Executive Summary
-          </h2>
-          <p className="text-sm text-zinc-500">Daily analysis & performance directive</p>
+          <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-gray-400">Executive Summary</h2>
+          <p className="text-4xl font-light tracking-tight mt-2">Performance Overview</p>
         </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto">
-          {last7Days.map((date) => {
-            const isSelected = isSameDay(date, selectedDate);
-            const isTodayDate = isToday(date);
-            
-            return (
-              <button
-                key={date.toISOString()}
-                onClick={() => setSelectedDate(date)}
-                className={cn(
-                  "flex flex-col items-center justify-center min-w-[54px] h-14 rounded-2xl border transition-all",
-                  isSelected 
-                    ? "bg-zinc-100 border-zinc-100 text-zinc-900 shadow-[0_0_15px_rgba(255,255,255,0.15)]" 
-                    : "bg-white/[0.02] border-white/[0.05] text-zinc-500 hover:border-white/[0.1] hover:bg-white/[0.05]"
-                )}
-              >
-                <span className="text-[10px] uppercase font-semibold tracking-wider">
-                  {format(date, 'EEE', { locale: localeId })}
-                </span>
-                <span className={cn(
-                  "text-lg font-bold leading-none mt-1",
-                  isSelected ? "text-zinc-900" : isTodayDate ? "text-indigo-400" : "text-zinc-300"
-                )}>
-                  {format(date, 'dd')}
-                </span>
-              </button>
-            );
-          })}
+        <div className="text-right">
+          <p className="text-sm font-bold">{format(new Date(), 'EEEE', { locale: localeId })}</p>
+          <p className="text-xs text-gray-500">{format(new Date(), 'dd MMMM yyyy', { locale: localeId })}</p>
         </div>
       </div>
 
-      <div className="bg-white/[0.02] border border-white/[0.05] rounded-3xl p-6 relative">
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center gap-2 text-zinc-400">
-            <CalendarDays className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              Data Tanggal: <span className="text-zinc-200">{format(selectedDate, 'dd MMMM yyyy', { locale: localeId })}</span>
-            </span>
-          </div>
-          <button
-            onClick={generateDirective}
-            disabled={isAnalyzing}
-            className="flex items-center gap-2 text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 px-4 py-2 rounded-full transition-colors disabled:opacity-50"
-          >
-            {isAnalyzing ? <Zap className="w-3.5 h-3.5 animate-pulse" /> : <Flame className="w-3.5 h-3.5" />}
-            Generate Directive
-          </button>
-        </div>
-
-        <AnimatePresence mode="wait">
-          {directive ? (
-            <motion.div key="directive" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
-              {directive}
-            </motion.div>
-          ) : (
-            <motion.div key="placeholder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-sm text-zinc-600 flex items-center gap-2 h-10">
-              <ChevronRight className="w-4 h-4" />
-              Menunggu inisiasi analisis...
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Grid Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <StatCard label="Habits Done" value={`${completedHabits}/${habits.length}`} />
+        <StatCard label="Prayer Status" value={`${totalPrayers}/5`} />
+        <StatCard label="Knowledge Log" value={`${learningLogs.length} Entries`} />
+        <StatCard label="Total Income" value={`Rp ${(totalFinance / 1000).toFixed(1)}k`} />
       </div>
+
+      {/* Insight Box */}
+      <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Strategic Insight</h3>
+        <p className="text-lg leading-relaxed max-w-2xl font-light italic">
+          {completedHabits > 0 
+            ? "Fokus harian Anda menunjukkan tren positif. Pertahankan momentum pada kategori produktivitas untuk mencapai target akhir pekan."
+            : "Data menunjukkan aktivitas rendah hari ini. Mulai dengan satu habit sederhana untuk mengaktifkan sistem operasional Anda kembali."}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+// Komponen Pembantu (Stat Card)
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="p-6 bg-white border border-gray-100 rounded-xl hover:border-black transition-colors">
+      <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400">{label}</p>
+      <p className="text-2xl font-bold mt-2">{value}</p>
     </div>
   );
 }
